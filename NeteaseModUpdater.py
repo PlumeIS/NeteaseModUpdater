@@ -15,6 +15,7 @@ from threading import Thread
 import pystray
 import pyuac
 from PIL import Image
+from pystray import MenuItem
 
 from IIcon import IIcon
 
@@ -192,30 +193,10 @@ class Updater:
     def on_exit(self):
         self.should_exit = True
 
+def open_version_folder(ic: IIcon, mi: MenuItem):
+    try_mkdir(os.path.realpath(get_resource_path(mi.text)))
+    subprocess.run(f'explorer /root,"{os.path.realpath(get_resource_path(mi.text))}"', shell=True)
 
-def open_1_16_4_folder():
-    try_mkdir(os.path.realpath(get_resource_path("1.16.4")))
-    subprocess.run(f'explorer /root,"{os.path.realpath(get_resource_path("1.16.4"))}"', shell=True)
-
-
-def open_1_18_1_folder():
-    try_mkdir(os.path.realpath(get_resource_path("1.18.1")))
-    subprocess.run(f'explorer /root,"{os.path.realpath(get_resource_path("1.18.1"))}"', shell=True)
-
-
-def open_1_20_1_folder():
-    try_mkdir(os.path.realpath(get_resource_path("1.20.1")))
-    subprocess.run(f'explorer /root,"{os.path.realpath(get_resource_path("1.20.1"))}"', shell=True)
-
-
-def open_1_20_6_folder():
-    try_mkdir(os.path.realpath(get_resource_path("1.20.6")))
-    subprocess.run(f'explorer /root,"{os.path.realpath(get_resource_path("1.20.6"))}"', shell=True)
-
-
-def open_1_21_folder():
-    try_mkdir(os.path.realpath(get_resource_path("1.21")))
-    subprocess.run(f'explorer /root,"{os.path.realpath(get_resource_path("1.21"))}"', shell=True)
 
 def try_mkdir(path):
     if not os.path.exists(path):
@@ -293,11 +274,11 @@ if __name__ == '__main__':
                          checked=lambda item: update.complete_delete),
         pystray.MenuItem('开机自启动', change_startup, checked=lambda item: startup),
         pystray.MenuItem("打开模组源文件夹",
-                         pystray.Menu(pystray.MenuItem("1.16.4", open_1_16_4_folder),
-                                      pystray.MenuItem("1.18.1", open_1_18_1_folder),
-                                      pystray.MenuItem("1.20.1", open_1_20_1_folder),
-                                      pystray.MenuItem("1.20.6", open_1_20_6_folder),
-                                      pystray.MenuItem("1.21", open_1_21_folder),)
+                         pystray.Menu(pystray.MenuItem("1.16.4", open_version_folder),
+                                      pystray.MenuItem("1.18.1", open_version_folder),
+                                      pystray.MenuItem("1.20.1", open_version_folder),
+                                      pystray.MenuItem("1.20.6", open_version_folder),
+                                      pystray.MenuItem("1.21", open_version_folder), )
                          ),
         pystray.MenuItem("修复识别文件", update.init),
         pystray.MenuItem('退出', update.on_exit)
