@@ -11,6 +11,7 @@ import zipfile
 from functools import cache
 from pathlib import Path
 from threading import Thread
+from typing import Iterator
 
 import pystray
 import pyuac
@@ -20,17 +21,17 @@ from pystray import MenuItem
 from IIcon import IIcon
 
 
-def get_resource_path(resource):
+def get_resource_path(resource: str) -> str:
     # if sys.executable.endswith("NeteaseModUpdater.exe"):
     #     return str(Path(sys.argv[0]).parent.parent.joinpath("resource").joinpath(resource))
     # else:
     return str(Path(sys.argv[0]).parent.joinpath("resource").joinpath(resource))
 
 
-def notify(title, message, timeout=10):
+def notify(title: str, message: str, timeout: int = 10) -> None:
     icon.notify(message, title)
 
-    def timeout_remove():
+    def timeout_remove() -> None:
         time.sleep(timeout)
         icon.remove_notification()
 
@@ -38,12 +39,12 @@ def notify(title, message, timeout=10):
 
 
 class DirWalker:
-    def __init__(self, path):
-        self.dirs = []
-        self.files = []
+    def __init__(self, path: str):
+        self.dirs: list[str] = []
+        self.files: list[str] = []
         self.walk(path)
 
-    def walk(self, dir_path):
+    def walk(self, dir_path: str) -> None:
         for i in os.listdir(dir_path):
             path = dir_path + "\\" + i
             if os.path.isfile(path):
@@ -51,10 +52,10 @@ class DirWalker:
             elif os.path.isdir(path):
                 self.dirs.append(path)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         return self
 
-    def __next__(self):
+    def __next__(self) -> str:
         if self.files:
             return self.files.pop(0)
         else:
@@ -66,7 +67,7 @@ class DirWalker:
 
 
 @cache
-def get_mod_id(jar):
+def get_mod_id(jar: str) -> str | None:
     try:
         with zipfile.ZipFile(jar, "r") as zip_file:
             zip_file.extract("META-INF/mods.toml", get_resource_path("temp/"))
@@ -87,7 +88,7 @@ def get_mod_id(jar):
 
 
 class Updater:
-    VERSION_MAP = {
+    VERSION_MAP: dict[str, str] = {
         "1.16.4": "16",
         "1.18.1": "18",
         "1.20.1": "20",
@@ -95,14 +96,14 @@ class Updater:
         "1.21": "21",
     }
 
-    def __init__(self):
-        self.game_path = None
-        self.has_path = True
-        self.toggle = True
-        self.auto_skip = True
-        self.complete_delete = False
-        self.should_exit = False
-        self.configs = ["toggle", "auto_skip", "complete_delete"]
+    def __init__(self) -> None:
+        self.game_path: str | None = None
+        self.has_path: bool = True
+        self.toggle: bool = True
+        self.auto_skip: bool = True
+        self.complete_delete: bool = False
+        self.should_exit: bool = False
+        self.configs: list[str] = ["toggle", "auto_skip", "complete_delete"]
 
         atexit.register(self.save_config)
 
@@ -111,7 +112,7 @@ class Updater:
 
         self.update_init = False
 
-    def save_config(self):
+    def save_config(self) -> None:
         with open(get_resource_path("config.json"), "w") as config_file:
             configs = {}
             for config in self.configs:
@@ -119,7 +120,7 @@ class Updater:
                 configs[config] = value
             config_file.write(json.dumps(configs, indent=True))
 
-    def load_config(self):
+    def load_config(self) -> None:
         if os.path.exists(get_resource_path("config.json")):
             with open(get_resource_path("config.json"), "r", encoding="utf-8") as config_file:
                 configs = json.loads(config_file.read())
@@ -128,7 +129,7 @@ class Updater:
                     if value is not None:
                         setattr(self, config, value)
 
-    def init(self):
+    def init(self) -> None:
         try:
             key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, fr"SOFTWARE\Netease\MCLauncher")
             with key:
@@ -147,7 +148,7 @@ class Updater:
             os.makedirs(cache_mods_path, exist_ok=True)
             shutil.copy(get_resource_path(f"mark/1@{mark_version}"), str(cache_mods_path))
 
-    def update(self):
+    def update(self) -> None:
         if not self.update_init:
             notify("网易模组替换器", f"网易模组替换器 已启动，修改配置请查看系统托盘")
             if len(sys.argv) > 1 and sys.argv[-1] == "set_startup":
@@ -165,7 +166,7 @@ class Updater:
                     self.replace(mcversion, version, mods_id)
                     notify("网易模组替换器", f"检测到游戏{mcversion}启动，已替换全部文件", timeout=10)
 
-    def replace(self, mcversion, version, mods_id):
+    def replace(self, mcversion: str, version: str, mods_id: list[str | None]) -> None:
         if self.complete_delete:
             for i in DirWalker(f"{self.game_path}\\Game\\.minecraft\\mods"):
                 os.remove(i)
@@ -181,16 +182,16 @@ class Updater:
         except OSError:
             pass
 
-    def on_clicked_complete_delete(self):
+    def on_clicked_complete_delete(self) -> None:
         self.complete_delete = not self.complete_delete
 
-    def on_clicked_toggled(self):
+    def on_clicked_toggled(self) -> None:
         self.toggle = not self.toggle
 
-    def on_clicked_auto_skip(self):
+    def on_clicked_auto_skip(self) -> None:
         self.auto_skip = not self.auto_skip
 
-    def on_exit(self):
+    def on_exit(self) -> None:
         self.should_exit = True
 
 def open_version_folder(ic: IIcon, mi: MenuItem):
@@ -198,12 +199,12 @@ def open_version_folder(ic: IIcon, mi: MenuItem):
     subprocess.run(f'explorer /root,"{os.path.realpath(get_resource_path(mi.text))}"', shell=True)
 
 
-def try_mkdir(path):
+def try_mkdir(path: str) -> None:
     if not os.path.exists(path):
         os.makedirs(path)
 
 
-def has_startup():
+def has_startup() -> bool:
     try:
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run", 0)
         with key:
@@ -214,7 +215,7 @@ def has_startup():
         return False
 
 
-def set_startup():
+def set_startup() -> None:
     global startup
     try:
         if not pyuac.isUserAdmin():
@@ -232,7 +233,7 @@ def set_startup():
         notify("网易模组替换器", f"开机自启动失败: {err.__class__.__name__}")
 
 
-def remove_startup():
+def remove_startup() -> None:
     global startup
     try:
         if not pyuac.isUserAdmin():
@@ -249,7 +250,7 @@ def remove_startup():
         notify("网易模组替换器", f"开机自启动关闭失败: {err.__class__.__name__}")
 
 
-def change_startup():
+def change_startup() -> None:
     global startup
     if startup:
         remove_startup()
