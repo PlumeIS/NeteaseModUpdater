@@ -86,6 +86,14 @@ def get_mod_id(jar):
 
 
 class Updater:
+    VERSION_MAP = {
+        "1.16.4": "16",
+        "1.18.1": "18",
+        "1.20.1": "20",
+        "1.20.6": "20_6",
+        "1.21": "21",
+    }
+
     def __init__(self):
         self.game_path = None
         self.has_path = True
@@ -129,17 +137,14 @@ class Updater:
             self.has_path = False
             self.toggle = False
             notify("网易模组替换器", "无法找到安装路径(可能游戏未安装)", timeout=10)
+            return
 
-        os.makedirs(rf"{self.game_path}\cache\game\V_1_16\mods", exist_ok=True)
-        os.makedirs(rf"{self.game_path}\cache\game\V_1_18\mods", exist_ok=True)
-        os.makedirs(rf"{self.game_path}\cache\game\V_1_20\mods", exist_ok=True)
-        os.makedirs(rf"{self.game_path}\cache\game\V_1_20_6\mods", exist_ok=True)
-        os.makedirs(rf"{self.game_path}\cache\game\V_1_21\mods", exist_ok=True)
-        shutil.copy(get_resource_path("mark/1@16"), f"{self.game_path}\\cache\\game\\V_1_16\\mods\\")
-        shutil.copy(get_resource_path("mark/1@18"), f"{self.game_path}\\cache\\game\\V_1_18\\mods\\")
-        shutil.copy(get_resource_path("mark/1@20"), f"{self.game_path}\\cache\\game\\V_1_20\\mods\\")
-        shutil.copy(get_resource_path("mark/1@20_6"), f"{self.game_path}\\cache\\game\\V_1_20_6\\mods\\")
-        shutil.copy(get_resource_path("mark/1@21"), f"{self.game_path}\\cache\\game\\V_1_20_6\\mods\\")
+        for mcversion, mark_version in self.VERSION_MAP.items():
+            cache_mods_path = Path(self.game_path).joinpath(
+                "cache", "game", f"V_{mcversion.replace('.', '_')}", "mods"
+            )
+            os.makedirs(cache_mods_path, exist_ok=True)
+            shutil.copy(get_resource_path(f"mark/1@{mark_version}"), str(cache_mods_path))
 
     def update(self):
         if not self.update_init:
@@ -152,31 +157,12 @@ class Updater:
         if self.should_exit:
             sys.exit(0)
         if self.toggle:
-            if os.path.exists(rf"{self.game_path}\Game\.minecraft\mods\1@16"):
-                mods_id = [get_mod_id(i) for i in DirWalker(rf"{self.game_path}\Game\.minecraft\mods") if
-                           os.path.splitext(i)[1] == ".jar"]
-                self.replace("1.16.4", "16", mods_id)
-                notify("网易模组替换器", "检测到游戏1.16.4启动，已替换全部文件", timeout=10)
-            if os.path.exists(rf"{self.game_path}\Game\.minecraft\mods\1@18"):
-                mods_id = [get_mod_id(i) for i in DirWalker(rf"{self.game_path}\Game\.minecraft\mods") if
-                           os.path.splitext(i)[1] == ".jar"]
-                self.replace("1.18.1", "18", mods_id)
-                notify("网易模组替换器", "检测到游戏1.18.1启动，已替换全部文件", timeout=10)
-            if os.path.exists(rf"{self.game_path}\Game\.minecraft\mods\1@20"):
-                mods_id = [get_mod_id(i) for i in DirWalker(rf"{self.game_path}\Game\.minecraft\mods") if
-                           os.path.splitext(i)[1] == ".jar"]
-                self.replace("1.20.1", "20", mods_id)
-                notify("网易模组替换器", "检测到游戏1.20.1启动，已替换全部文件")
-            if os.path.exists(rf"{self.game_path}\Game\.minecraft\mods\1@20_6"):
-                mods_id = [get_mod_id(i) for i in DirWalker(rf"{self.game_path}\Game\.minecraft\mods") if
-                           os.path.splitext(i)[1] == ".jar"]
-                self.replace("1.20.6", "20_6", mods_id)
-                notify("网易模组替换器", "检测到游戏1.20.6启动，已替换全部文件")
-            if os.path.exists(rf"{self.game_path}\Game\.minecraft\mods\1@21"):
-                mods_id = [get_mod_id(i) for i in DirWalker(rf"{self.game_path}\Game\.minecraft\mods") if
-                           os.path.splitext(i)[1] == ".jar"]
-                self.replace("1.21", "21", mods_id)
-                notify("网易模组替换器", "检测到游戏1.20.6启动，已替换全部文件")
+            for mcversion, version in self.VERSION_MAP.items():
+                if os.path.exists(rf"{self.game_path}\Game\.minecraft\mods\1@{version}"):
+                    mods_id = [get_mod_id(i) for i in DirWalker(rf"{self.game_path}\Game\.minecraft\mods")
+                               if os.path.splitext(i)[1] == ".jar"]
+                    self.replace(mcversion, version, mods_id)
+                    notify("网易模组替换器", f"检测到游戏{mcversion}启动，已替换全部文件", timeout=10)
 
     def replace(self, mcversion, version, mods_id):
         if self.complete_delete:
@@ -300,7 +286,6 @@ if __name__ == '__main__':
         startup = False
 
     update = Updater()
-    update.init()
     menu = pystray.Menu(
         pystray.MenuItem('开启', update.on_clicked_toggled, checked=lambda item: update.toggle),
         pystray.MenuItem('自动跳过相同id模组', update.on_clicked_auto_skip, checked=lambda item: update.auto_skip),
